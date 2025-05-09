@@ -1,54 +1,79 @@
-//
-//  LoginView.swift
-//  GroceryList
-//
-//  Created by Brandon Jacobs on 5/9/25.
-//
 import SwiftUI
 
 struct LoginView: View {
     @State private var username = ""
     @State private var password = ""
-    @State private var isLoggedIn = false
+    @State private var isLoginSuccessful = false
+    @State private var showSignUp = false // <-- Track if user wants to create account
+    @State private var isNavigatingToShoppingList = false // <-- Declare the navigation state variable
 
+    
     var body: some View {
-        if isLoggedIn {
-            ShoppingListView() //ShoppingListView() <-- once page is built, this will be activated.
-        } else {
-            VStack(spacing: 20) {
-                Text("Login")
-                    .font(.largeTitle)
-                    .bold()
-
+        NavigationStack { // <-- Add NavigationStack
+            VStack {
+                Image("login_logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 200, height: 200)
+                    .padding(.top, 50)
+                
                 TextField("Username", text: $username)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .autocapitalization(.none)
-                    .padding(.horizontal)
-
+                    .padding()
+                
                 SecureField("Password", text: $password)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.horizontal)
-
+                    .padding()
+                
                 Button(action: {
-                    // Simple fake login logic
-                    if !username.isEmpty && !password.isEmpty {
-                        isLoggedIn = true
-                    }
+                    // Handle login action here
+                    isLoginSuccessful = true
                 }) {
-                    Text("Login")
+                    Text("Log In")
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(Color.blue)
                         .foregroundColor(.white)
                         .cornerRadius(10)
-                        .padding(.horizontal)
+                }
+                .padding()
+                
+                // Create Account Button
+                NavigationLink(destination: SignUpView(), isActive: $showSignUp) {
+                    Button(action: {
+                        showSignUp = true
+                    }) {
+                        Text("Create Account")
+                            .foregroundColor(.blue)
+                            .padding()
+                    }
+                }
+                
+                if isLoginSuccessful {
+                    Text("Login Successful!")
+                        .foregroundColor(.green)
+                }
+                NavigationLink(destination: ShoppingListView(), isActive: $isLoginSuccessful) {
+                    EmptyView()
+                    
+                    Spacer()
+                }
+                .padding()
+                .navigationTitle("Log In")// <-- Title of the screen
+                .navigationDestination(isPresented: $isNavigatingToShoppingList) {
+                    ShoppingListView() // Make sure you have a ShoppingListView to navigate to
+                    
+                }
+                .navigationDestination(isPresented: $showSignUp) {
+                    SignUpView()
+                    
                 }
             }
         }
     }
+    
 }
 
 #Preview {
     LoginView()
 }
-

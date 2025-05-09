@@ -1,140 +1,155 @@
 //
-//  ContentView.swift
+//  GroceryListDetailView.swift
 //  GroceryList
 //
 //  Created by Brandon Jacobs on 3/30/25.
 //
-import SwiftData   // Framework for data storage and retrieval
-import SwiftUI     // Framework for building user interfaces
+
+import SwiftData
+import SwiftUI
+
+extension UIApplication {
+    func endEditing(_ force: Bool = false) {
+        if let windowScene = connectedScenes.first as? UIWindowScene {
+            windowScene.windows.filter { $0.isKeyWindow }.first?.endEditing(force)
+        }
+    }
+}
 
 struct GroceryListDetailView: View {
-    // Access the model (database) context to insert, delete, and save items
     @Environment(\.modelContext) var context
-    
-    // State variable to hold the new item's text input
+
+    // Holds the new item text field input
     @State var newItemString = ""
-    
-    /*
-    // Query to fetch all GroceryListItem objects from the database
-    @Query var items: [GroceryListItem]
-    */
+
+    // Instead of @Query, we pull the items directly from the specific ShoppingList
     var items: [GroceryListItem] {
         groceryList.items
     }
 
     @Bindable var groceryList: ShoppingList
 
-    // Computed property: filters to get only items that are NOT purchased
+    // Items not purchased yet
     var toBuyItems: [GroceryListItem] {
-        items.filter { !$0.isPurchased }
+        items.filter { !$0.inCart }
     }
 
-    // Computed property: filters to get only items that ARE purchased
+    // Items that have been purchased
     var boughtItems: [GroceryListItem] {
-        items.filter { $0.isPurchased }
+        items.filter { $0.inCart }
     }
 
     var body: some View {
-        NavigationView {   // Provides a navigation-style layout
-            VStack {       // Stack elements vertically
-                // Text field for entering a new grocery item
+        NavigationView {
+            VStack {
+                // Text field for adding a new item
                 TextField("Add item", text: $newItemString)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
 
-                // Save button to add the new item to the list
+                // Button to save the new item
                 Button("Save") {
                     // Make sure the text field is not empty
                     guard !newItemString.isEmpty else {
                         return
                     }
-
-                   /* // Create a new GroceryListItem object
+                    
+                    // Add the new item to the grocery list
                     let newItem = GroceryListItem(title: newItemString, subtitle: "", date: Date())
-
-                    // Insert the new item into the database
+                    groceryList.items.append(newItem)
                     context.insert(newItem)
-*/
-                    let newItem = GroceryListItem(title: newItemString, subtitle: "", date: Date())
-                    groceryList.items.append(newItem) // <-- ADD ITEM TO LIST
-                    context.insert(newItem) // <-- Optional: if needed
+                    
+                    // Dismiss the keyboard after saving
+                    UIApplication.shared.endEditing()
+
                     // Clear the text field
                     newItemString = ""
                 }
+                .buttonStyle(.borderedProminent)
+                .padding(.bottom)
 
-                // List view displaying the grocery items
+                // Main list showing the grocery items
                 List {
-                    // Section for items not yet purchased
+                    // Items not yet purchased
                     Section("Not in Cart") {
                         ForEach(toBuyItems) { item in
-                            HStack { // Horizontal stack: icon and text
-                                Image(
-                                    systemName: item.isPurchased
-                                        ? "checkmark.circle.fill" : "circle" // Filled circle if purchased
-                                )
-                                .foregroundColor(item.isPurchased ? .green : .gray) // Green if purchased
-                                .onTapGesture {
-                                    withAnimation {
-                                        // Toggle purchase status
-                                        item.isPurchased.toggle()
+                            HStack {
+                                Image(systemName: item.inCart ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(item.inCart ? .green : .gray)
+                                    .onTapGesture {
+                                        withAnimation {
+                                            item.inCart.toggle()
+                                            try? context.save()
+                                        }
                                     }
-                                    try? context.save() // Save change to the database
-                                }
+
                                 Text(item.title)
-                                    .strikethrough(item.isPurchased) // Strike text if purchased
+                                    .strikethrough(item.inCart)
                             }
                         }
                         .onDelete { indexSet in
-                            // Allow deleting items
-                            indexSet.forEach { index in
-                                context.delete(toBuyItems[index])
+                            for index in indexSet {
+                                let item = toBuyItems[index]
+                                context.delete(item) // Delete item from context
+                                
+                                }
+                            try? context.save() // Save changes
                             }
-                        }
                     }
 
-                    // Section for items already purchased
+                    // Items already purchased
                     Section("In Cart") {
                         ForEach(boughtItems) { item in
                             HStack {
-                                Image(
-                                    systemName: item.isPurchased
-                                        ? "checkmark.circle.fill" : "circle"
-                                )
-                                .foregroundColor(item.isPurchased ? .green : .gray)
-                                .onTapGesture {
-                                    withAnimation {
-                                        item.isPurchased.toggle()
+                                Image(systemName: item.inCart ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(item.inCart ? .green : .gray)
+                                    .onTapGesture {
+                                        withAnimation {
+                                            item.inCart.toggle()
+                                            try? context.save()
+                                        }
                                     }
-                                    try? context.save()
-                                }
+
                                 Text(item.title)
-                                    .strikethrough(item.isPurchased)
+                                    .strikethrough(item.inCart)
                             }
                         }
                         .onDelete { indexSet in
-                            // Allow deleting purchased items
-                            indexSet.forEach { index in
-                                context.delete(boughtItems[index])
+                            for index in indexSet {
+                                let item = boughtItems[index]
+                                context.delete(item) // Delete item from context
+                                
+                                }
+                            try? context.save() // Save changes
                             }
-                        }
                     }
                 }
-                .listStyle(.insetGrouped) // List style with grouped sections
-
+                .listStyle(.insetGrouped)
             }
             .overlay {
-                // If there are no items, show "No Items" text
                 if items.isEmpty {
-                    Text("No Items")
+                    VStack {
+                        Image(systemName: "cart")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 100, height: 100)
+                            .foregroundColor(.gray)
+                            .padding()
+
+                        Text("No Items Yet")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
-        }
-        .navigationTitle(groceryList.name) //shows title of list you are in
 
+            .navigationTitle(groceryList.name) // <-- Use the list's actual name!
+            .navigationBarTitleDisplayMode(.inline)
+        }
     }
 }
 
-// Preview provider for SwiftUI previews
+// Preview for Xcode canvas
 #Preview {
     GroceryListDetailView(groceryList: ShoppingList(name: "Sample List"))
 }
-
