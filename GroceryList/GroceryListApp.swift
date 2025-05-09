@@ -12,8 +12,13 @@ import SwiftData
 struct GroceryListApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            LoginView()
         }
-        .modelContainer(for: GroceryListItem.self)
+        //.modelContainer(for: GroceryListItem.self)
+       // .modelContainer(for: [ShoppingList.self, GroceryListItem.self])
+        .modelContainer(for: [ShoppingList.self, GroceryListItem.self], isAutosaveEnabled: true, isUndoEnabled: true)
+
+
+
     }
 }

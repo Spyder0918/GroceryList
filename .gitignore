@@ -4,7 +4,9 @@
 
 ## User settings
 xcuserdata/
-
+.DS_Store
+GroceryList/.DS_Store
+.vscode/
 ## Obj-C/Swift specific
 *.hmap
 
@@ -60,3 +62,4 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
