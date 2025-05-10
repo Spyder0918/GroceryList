@@ -4,29 +4,27 @@
 //
 //  Created by Brandon Jacobs on 5/9/25.
 //
-
-import Security
 import Foundation
+import Security
 
 class KeychainHelper {
-    // Use static to make it callable without creating an instance
-    static func save(_ data: String, forKey key: String) {
-        if let data = data.data(using: .utf8) {
+    static func saveAccounts(_ accounts: [UserAccount]) {
+        if let data = try? JSONEncoder().encode(accounts) {
             let query = [
                 kSecClass: kSecClassGenericPassword,
-                kSecAttrAccount: key,
+                kSecAttrAccount: "userAccounts",
                 kSecValueData: data
             ] as CFDictionary
 
-            SecItemDelete(query)  // Delete any existing data for the key
-            SecItemAdd(query, nil)  // Add the new data to the keychain
+            SecItemDelete(query)
+            SecItemAdd(query, nil)
         }
     }
 
-    static func read(forKey key: String) -> String? {
+    static func loadAccounts() -> [UserAccount] {
         let query = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrAccount: key,
+            kSecAttrAccount: "userAccounts",
             kSecReturnData: true,
             kSecMatchLimit: kSecMatchLimitOne
         ] as CFDictionary
@@ -35,8 +33,10 @@ class KeychainHelper {
         let status = SecItemCopyMatching(query, &dataTypeRef)
 
         if status == errSecSuccess, let data = dataTypeRef as? Data {
-            return String(data: data, encoding: .utf8)
+            if let accounts = try? JSONDecoder().decode([UserAccount].self, from: data) {
+                return accounts
+            }
         }
-        return nil
+        return []
     }
 }

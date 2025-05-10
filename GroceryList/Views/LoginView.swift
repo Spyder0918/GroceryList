@@ -4,12 +4,13 @@ struct LoginView: View {
     @State private var username = ""
     @State private var password = ""
     @State private var isLoginSuccessful = false
-    @State private var showSignUp = false // <-- Track if user wants to create account
-    @State private var isNavigatingToShoppingList = false // <-- Declare the navigation state variable
-
+    @State private var showSignUp = false
+    @State private var showLoginError = false
+    @State private var errorMessage = ""
+    
     
     var body: some View {
-        NavigationStack { // <-- Add NavigationStack
+        NavigationStack {
             VStack {
                 Image("login_logo")
                     .resizable()
@@ -17,7 +18,7 @@ struct LoginView: View {
                     .frame(width: 200, height: 200)
                     .padding(.top, 50)
                 
-                TextField("Username", text: $username)
+                TextField("Email", text: $username)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
                 
@@ -26,9 +27,9 @@ struct LoginView: View {
                     .padding()
                 
                 Button(action: {
-                    // Handle login action here
-                    isLoginSuccessful = true
+                    handleLogin()
                 }) {
+
                     Text("Log In")
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -37,43 +38,54 @@ struct LoginView: View {
                         .cornerRadius(10)
                 }
                 .padding()
+
                 
-                // Create Account Button
-                NavigationLink(destination: SignUpView(), isActive: $showSignUp) {
-                    Button(action: {
-                        showSignUp = true
-                    }) {
-                        Text("Create Account")
-                            .foregroundColor(.blue)
-                            .padding()
-                    }
+                Button(action: {
+                    showSignUp = true
+                }) {
+                    Text("Create Account")
+                        .foregroundColor(.blue)
+                        .padding()
                 }
                 
                 if isLoginSuccessful {
                     Text("Login Successful!")
                         .foregroundColor(.green)
                 }
-                NavigationLink(destination: ShoppingListView(), isActive: $isLoginSuccessful) {
-                    EmptyView()
-                    
-                    Spacer()
-                }
-                .padding()
-                .navigationTitle("Log In")// <-- Title of the screen
-                .navigationDestination(isPresented: $isNavigatingToShoppingList) {
-                    ShoppingListView() // Make sure you have a ShoppingListView to navigate to
-                    
-                }
-                .navigationDestination(isPresented: $showSignUp) {
-                    SignUpView()
-                    
-                }
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Log In")
+            .navigationDestination(isPresented: $isLoginSuccessful) {
+                ShoppingListView()
+            }
+            .navigationDestination(isPresented: $showSignUp) {
+                SignUpView()
+            }
+            .alert("Login Failed", isPresented: $showLoginError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
             }
         }
     }
     
-}
+    private func handleLogin() {
+        let accounts = KeychainHelper.loadAccounts()
+        
+        if accounts.contains(where: { $0.email.lowercased() == username.lowercased() && $0.password == password }) {
+            isLoginSuccessful = true
+        } else {
+            errorMessage = "Invalid email or password. Please try again."
+            showLoginError = true
+        }
+    }
 
+        
+        
+        }
 #Preview {
     LoginView()
-}
+    }
+

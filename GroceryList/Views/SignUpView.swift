@@ -15,7 +15,7 @@ struct SignUpView: View {
 
     // Alert control
     @State private var showSuccessAlert = false
-    @State private var showErrorAlert = false // New alert for validation errors
+    @State private var showErrorAlert = false
 
     // Error message
     @State private var errorMessage = ""
@@ -46,22 +46,25 @@ struct SignUpView: View {
                 .padding(.horizontal)
 
             Button(action: {
-                // Validate fields
                 if firstName.isEmpty || lastName.isEmpty || email.isEmpty || password.isEmpty {
-                    // Set the error message based on which field is missing
                     errorMessage = "Please fill in all fields."
                     showErrorAlert = true
                 } else {
-                    // Save user info to Keychain
-                    let fullName = "\(firstName) \(lastName)"
-                    KeychainHelper.save("userFullName", forKey: fullName)
-                    KeychainHelper.save("userEmail", forKey: email)
-                    KeychainHelper.save("userPassword", forKey: password)
-
+                    // 1. Load existing accounts
+                    var accounts = KeychainHelper.loadAccounts()
+                    
+                    // 2. Add the new account
+                    let newAccount = UserAccount(email: email, password: password)
+                    accounts.append(newAccount)
+                    
+                    // 3. Save updated accounts list
+                    KeychainHelper.saveAccounts(accounts)
+                    
                     // Show success alert
                     showSuccessAlert = true
                 }
-            }) {
+            })
+ {
                 Text("Sign Up")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
@@ -71,30 +74,28 @@ struct SignUpView: View {
                     .cornerRadius(10)
                     .padding(.horizontal)
             }
-            .alert(isPresented: $showSuccessAlert) {
-                Alert(
-                    title: Text("Success!"),
-                    message: Text("Account created. Please log in."),
-                    dismissButton: .default(Text("OK")) {
-                        // Dismiss SignUpView (go back to LoginView)
-                        dismiss()
-                    }
-                )
+            .alert("Success!", isPresented: $showSuccessAlert) {
+                Button("OK") {
+                    dismiss() // <-- Dismiss and go back to login
+                }
+            } message: {
+                Text("Account created. Please log in.")
             }
-            .alert(isPresented: $showErrorAlert) {
-                Alert(
-                    title: Text("Error"),
-                    message: Text(errorMessage), // Display the error message
-                    dismissButton: .default(Text("OK"))
-                )
+            .alert("Error", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
             }
-            // Trigger navigation to LoginView when signup is successful
-            NavigationLink("", destination: LoginView(), isActive: $showSuccessAlert).hidden()
+
+            Spacer()
         }
         .padding()
+        .navigationTitle("Sign Up")
     }
 }
 
 #Preview {
-    SignUpView()
+    NavigationStack {
+        SignUpView()
+    }
 }
